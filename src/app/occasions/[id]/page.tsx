@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getCarById, listPublishedCars } from "@/lib/cars";
 import { business } from "@/content/site-content";
+import CarGallery from "./CarGallery";
 
 const fuelLabel: Record<string, string> = {
   elektrisch: "Elektrisch",
@@ -64,24 +65,11 @@ export default async function OccasionDetailPage({
 
         <div className="grid gap-10 lg:grid-cols-[1.35fr_0.65fr] lg:items-start">
           <div>
-            <div className="relative overflow-hidden rounded-xl bg-[#0a0a0a]">
-              {car.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={car.image}
-                  alt={`${car.make} ${car.model}`}
-                  className="aspect-[16/9] w-full object-cover"
-                />
-              ) : (
-                <div className="flex aspect-[16/9] items-center justify-center text-[13px] text-[#444]">
-                  Geen foto beschikbaar
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-              <span className="absolute bottom-4 left-4 rounded-md bg-black/60 px-2.5 py-1 text-[12px] font-medium text-white backdrop-blur-sm">
-                {fuelLabel[car.fuel]}
-              </span>
-            </div>
+            <CarGallery
+              images={car.images}
+              alt={`${car.make} ${car.model}`}
+              badge={fuelLabel[car.fuel]}
+            />
 
             <div className="mt-7">
               <h1 className="text-2xl font-semibold tracking-tight text-white">

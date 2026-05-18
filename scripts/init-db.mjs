@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS cars (
   transmission TEXT NOT NULL CHECK (transmission IN ('automaat','handgeschakeld')),
   price        INTEGER NOT NULL,
   image        TEXT NOT NULL DEFAULT '',
+  images       JSONB NOT NULL DEFAULT '[]'::jsonb,
   color        TEXT NOT NULL DEFAULT '',
   description  TEXT NOT NULL DEFAULT '',
   specs        JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -45,6 +46,13 @@ CREATE TABLE IF NOT EXISTS cars (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS images JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+UPDATE cars
+   SET images = jsonb_build_array(image)
+ WHERE jsonb_array_length(images) = 0
+   AND image <> '';
 
 CREATE INDEX IF NOT EXISTS cars_created_at_idx ON cars (created_at DESC);
 CREATE INDEX IF NOT EXISTS cars_published_idx  ON cars (published);

@@ -15,6 +15,7 @@ export type Car = {
   transmission: TransmissionType;
   price: number;
   image: string;
+  images: string[];
   color: string;
   description: string;
   specs: Spec[];
@@ -33,6 +34,7 @@ type CarRow = {
   transmission: TransmissionType;
   price: number;
   image: string;
+  images: string[] | string | null;
   color: string;
   description: string;
   specs: Spec[] | string | null;
@@ -41,12 +43,23 @@ type CarRow = {
   updated_at: string | Date;
 };
 
-function rowToCar(row: CarRow): Car {
-  let specs: Spec[] = [];
-  if (Array.isArray(row.specs)) specs = row.specs;
-  else if (typeof row.specs === "string") {
-    try { specs = JSON.parse(row.specs); } catch { specs = []; }
+function parseJsonArray<T>(value: T[] | string | null): T[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   }
+  return [];
+}
+
+function rowToCar(row: CarRow): Car {
+  const specs = parseJsonArray<Spec>(row.specs);
+  let images = parseJsonArray<string>(row.images).filter(Boolean);
+  if (images.length === 0 && row.image) images = [row.image];
   return {
     id: row.id,
     make: row.make,
@@ -57,6 +70,7 @@ function rowToCar(row: CarRow): Car {
     transmission: row.transmission,
     price: row.price,
     image: row.image,
+    images,
     color: row.color,
     description: row.description,
     specs,
@@ -99,7 +113,7 @@ export type CarInput = {
   fuel: FuelType;
   transmission: TransmissionType;
   price: number;
-  image: string;
+  images: string[];
   color: string;
   description: string;
   specs: Spec[];
@@ -107,14 +121,16 @@ export type CarInput = {
 };
 
 export async function createCar(input: CarInput): Promise<Car> {
+  const cover = input.images[0] ?? "";
   const rows = (await sql`
     INSERT INTO cars (
       id, make, model, year, km, fuel, transmission, price,
-      image, color, description, specs, published
+      image, images, color, description, specs, published
     ) VALUES (
       ${input.id}, ${input.make}, ${input.model}, ${input.year}, ${input.km},
       ${input.fuel}, ${input.transmission}, ${input.price},
-      ${input.image}, ${input.color}, ${input.description},
+      ${cover}, ${JSON.stringify(input.images)}::jsonb,
+      ${input.color}, ${input.description},
       ${JSON.stringify(input.specs)}::jsonb, ${input.published}
     )
     RETURNING *
@@ -123,6 +139,7 @@ export async function createCar(input: CarInput): Promise<Car> {
 }
 
 export async function updateCar(id: string, input: CarInput): Promise<Car | null> {
+  const cover = input.images[0] ?? "";
   const rows = (await sql`
     UPDATE cars SET
       id = ${input.id},
@@ -133,7 +150,8 @@ export async function updateCar(id: string, input: CarInput): Promise<Car | null
       fuel = ${input.fuel},
       transmission = ${input.transmission},
       price = ${input.price},
-      image = ${input.image},
+      image = ${cover},
+      images = ${JSON.stringify(input.images)}::jsonb,
       color = ${input.color},
       description = ${input.description},
       specs = ${JSON.stringify(input.specs)}::jsonb,

@@ -48,6 +48,20 @@ function parseSpecs(raw: string): Spec[] {
     });
 }
 
+function parseImages(raw: string): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((v): v is string => typeof v === "string")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 function parseCarForm(formData: FormData): CarInput {
   const make = String(formData.get("make") ?? "").trim();
   const model = String(formData.get("model") ?? "").trim();
@@ -56,7 +70,7 @@ function parseCarForm(formData: FormData): CarInput {
   const fuel = String(formData.get("fuel") ?? "benzine") as FuelType;
   const transmission = String(formData.get("transmission") ?? "handgeschakeld") as TransmissionType;
   const price = Number(formData.get("price") ?? 0);
-  const image = String(formData.get("image") ?? "").trim();
+  const images = parseImages(String(formData.get("images") ?? ""));
   const color = String(formData.get("color") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const specs = parseSpecs(String(formData.get("specs") ?? ""));
@@ -74,7 +88,7 @@ function parseCarForm(formData: FormData): CarInput {
     fuel,
     transmission,
     price,
-    image,
+    images,
     color,
     description,
     specs,

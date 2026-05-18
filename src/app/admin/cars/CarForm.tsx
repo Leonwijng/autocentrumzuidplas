@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, Upload, Trash2 } from "lucide-react";
+import { ArrowLeft, Upload, Trash2, ArrowUp, ArrowDown, Star } from "lucide-react";
 import type { Car } from "@/lib/cars";
 
 type Action = (formData: FormData) => Promise<void | { error?: string }>;
@@ -15,28 +15,65 @@ type Props = {
 };
 
 export default function CarForm({ car, saveAction, deleteAction, title }: Props) {
-  const [image, setImage] = useState<string>(car?.image ?? "");
+  const initialImages = car?.images?.length ? car.images : car?.image ? [car.image] : [];
+  const [images, setImages] = useState<string[]>(initialImages);
+  const [urlInput, setUrlInput] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [deleting, startDelete] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleUpload(file: File) {
+  async function uploadFile(file: File): Promise<string> {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+    if (!res.ok) throw new Error((await res.text()) || "Upload mislukt");
+    const data = (await res.json()) as { url: string };
+    return data.url;
+  }
+
+  async function handleFiles(files: FileList | File[]) {
     setUploading(true);
     setError(null);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      if (!res.ok) throw new Error((await res.text()) || "Upload mislukt");
-      const data = (await res.json()) as { url: string };
-      setImage(data.url);
+      const list = Array.from(files);
+      const urls: string[] = [];
+      for (const file of list) {
+        urls.push(await uploadFile(file));
+      }
+      setImages((prev) => [...prev, ...urls]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload mislukt");
     } finally {
       setUploading(false);
     }
+  }
+
+  function removeAt(index: number) {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function moveTo(index: number, targetIndex: number) {
+    if (targetIndex < 0 || targetIndex >= images.length) return;
+    setImages((prev) => {
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.splice(targetIndex, 0, item);
+      return next;
+    });
+  }
+
+  function makeCover(index: number) {
+    if (index === 0) return;
+    moveTo(index, 0);
+  }
+
+  function addUrl() {
+    const url = urlInput.trim();
+    if (!url) return;
+    setImages((prev) => [...prev, url]);
+    setUrlInput("");
   }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -68,25 +105,75 @@ export default function CarForm({ car, saveAction, deleteAction, title }: Props)
         <h1 className="mb-8 text-2xl font-semibold tracking-tight text-white">{title}</h1>
 
         <form onSubmit={onSubmit} className="space-y-6">
-          <input type="hidden" name="image" value={image} />
+          <input type="hidden" name="images" value={JSON.stringify(images)} />
 
-          <Section title="Foto">
+          <Section
+            title="Foto's"
+            hint={images.length > 0 ? `${images.length} ${images.length === 1 ? "foto" : "foto's"} · eerste is cover` : undefined}
+          >
             <div className="space-y-3">
-              {image ? (
-                <div className="relative overflow-hidden rounded-lg border border-white/[0.08]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={image} alt="" className="aspect-[16/9] w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setImage("")}
-                    className="absolute right-2 top-2 rounded-md bg-black/70 px-2 py-1 text-[11px] text-white backdrop-blur hover:bg-black/90"
-                  >
-                    Verwijderen
-                  </button>
+              {images.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {images.map((src, i) => (
+                    <div
+                      key={`${src}-${i}`}
+                      className="group relative overflow-hidden rounded-lg border border-white/[0.08]"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt="" className="aspect-[4/3] w-full object-cover" />
+
+                      {i === 0 && (
+                        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-white px-1.5 py-0.5 text-[10px] font-semibold text-black">
+                          <Star className="size-2.5 fill-current" /> Cover
+                        </span>
+                      )}
+
+                      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/90 to-transparent p-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                        <div className="flex gap-1">
+                          {i !== 0 && (
+                            <button
+                              type="button"
+                              onClick={() => makeCover(i)}
+                              title="Maak cover"
+                              className="rounded bg-black/70 p-1 text-white hover:bg-black"
+                            >
+                              <Star className="size-3" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => moveTo(i, i - 1)}
+                            disabled={i === 0}
+                            title="Naar links"
+                            className="rounded bg-black/70 p-1 text-white hover:bg-black disabled:opacity-30"
+                          >
+                            <ArrowUp className="size-3 -rotate-90" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveTo(i, i + 1)}
+                            disabled={i === images.length - 1}
+                            title="Naar rechts"
+                            className="rounded bg-black/70 p-1 text-white hover:bg-black disabled:opacity-30"
+                          >
+                            <ArrowDown className="size-3 -rotate-90" />
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeAt(i)}
+                          title="Verwijder"
+                          className="rounded bg-black/70 p-1 text-red-400 hover:bg-black hover:text-red-300"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="flex aspect-[16/9] items-center justify-center rounded-lg border border-dashed border-white/[0.12] text-[12px] text-[#555]">
-                  Geen foto
+                  Geen foto's
                 </div>
               )}
 
@@ -95,10 +182,12 @@ export default function CarForm({ car, saveAction, deleteAction, title }: Props)
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   hidden
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleUpload(f);
+                    const files = e.target.files;
+                    if (files && files.length > 0) handleFiles(files);
+                    e.target.value = "";
                   }}
                 />
                 <button
@@ -107,16 +196,31 @@ export default function CarForm({ car, saveAction, deleteAction, title }: Props)
                   disabled={uploading}
                   className="btn-ghost text-[12px] py-1.5"
                 >
-                  <Upload className="size-3.5" /> {uploading ? "Uploaden…" : "Foto uploaden"}
+                  <Upload className="size-3.5" />{" "}
+                  {uploading ? "Uploaden…" : "Foto's uploaden"}
                 </button>
                 <span className="text-[11px] text-[#555]">of plak een URL:</span>
                 <input
                   type="url"
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addUrl();
+                    }
+                  }}
                   placeholder="https://…"
                   className="flex-1 min-w-[200px] rounded-md border border-white/[0.1] bg-white/[0.03] px-3 py-1.5 text-[12px] text-white outline-none focus:border-white/25"
                 />
+                <button
+                  type="button"
+                  onClick={addUrl}
+                  disabled={!urlInput.trim()}
+                  className="btn-ghost text-[12px] py-1.5 disabled:opacity-40"
+                >
+                  Toevoegen
+                </button>
               </div>
             </div>
           </Section>

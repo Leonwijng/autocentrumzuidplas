@@ -1,0 +1,116 @@
+﻿@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Stack Sans Text", system-ui, sans-serif;
+  --font-heading: var(--font-syne), "Syne", sans-serif;
+  --font-display: var(--font-fjalla), "Fjalla One", sans-serif;
+}
+
+:root {
+  --background: #000;
+  --foreground: #ededed;
+}
+
+@layer base {
+  *   { border-color: rgba(255, 255, 255, 0.07); }
+  body {
+    background: #000;
+    color: #ededed;
+    font-family: "Stack Sans Text", system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100svh;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-syne), "Syne", sans-serif;
+  }
+  html { scroll-behavior: smooth; }
+  ::selection { background: rgba(255,255,255,0.12); color: #fff; }
+}
+
+/* ─── Animations ─── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-fade-in {
+  animation: fade-in 0.4s ease both;
+}
+.delay-1 { animation-delay: 80ms;  }
+.delay-2 { animation-delay: 160ms; }
+.delay-3 { animation-delay: 240ms; }
+.delay-4 { animation-delay: 320ms; }
+
+/* ─── Utilities ─── */
+@layer utilities {
+  /* Very subtle card surface */
+  .surface {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .surface-hover:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  /* Dot-grid bg — use sparingly */
+  .dot-grid {
+    background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  /* Radial glow — only in hero */
+  .hero-glow {
+    background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(59,130,246,0.12), transparent);
+  }
+
+  /* Primary button: white on black */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #fff;
+    color: #000;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.6rem 1.25rem;
+    border-radius: 0.5rem;
+    transition: background 150ms ease, opacity 150ms ease;
+  }
+  .btn-primary:hover { background: #e5e5e5; }
+
+  /* Ghost button */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    color: #ededed;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.6rem 1.25rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    transition: border-color 150ms ease, background 150ms ease;
+  }
+  .btn-ghost:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255,255,255,0.04);
+  }
+
+  /* Thin horizontal divider */
+  .divider {
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+}

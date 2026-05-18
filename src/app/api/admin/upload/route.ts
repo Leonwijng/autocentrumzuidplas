@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { isAuthenticated } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -7,17 +6,24 @@ export const runtime = "nodejs";
 const MAX_BYTES = 8 * 1024 * 1024;
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 
+const DEFAULT_REPO = "Leonwijng/autocentrumzuidplas";
+const DEFAULT_BRANCH = "main";
+
 export async function POST(req: Request) {
   if (!(await isAuthenticated())) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) {
     return new NextResponse(
-      "BLOB_READ_WRITE_TOKEN is niet geconfigureerd. Stel deze in op Vercel of in .env.local.",
+      "GITHUB_TOKEN is niet geconfigureerd. Stel deze in op Vercel of in .env.local.",
       { status: 500 },
     );
   }
+
+  const repo = process.env.GITHUB_REPO || DEFAULT_REPO;
+  const branch = process.env.GITHUB_BRANCH || DEFAULT_BRANCH;
 
   const formData = await req.formData();
   const file = formData.get("file");
@@ -32,12 +38,39 @@ export async function POST(req: Request) {
   }
 
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-  const key = `cars/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const path = `public/uploads/cars/${filename}`;
 
-  const blob = await put(key, file, {
-    access: "public",
-    contentType: file.type,
-  });
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const content = bytes.toString("base64");
 
-  return NextResponse.json({ url: blob.url });
+  const ghRes = await fetch(
+    `https://api.github.com/repos/${repo}/contents/${encodeURI(path)}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/json",
+        "User-Agent": "autocentrumzuidplas-cms",
+      },
+      body: JSON.stringify({
+        message: `chore: upload ${filename}`,
+        content,
+        branch,
+      }),
+    },
+  );
+
+  if (!ghRes.ok) {
+    const text = await ghRes.text();
+    return new NextResponse(
+      `GitHub upload mislukt (${ghRes.status}): ${text}`,
+      { status: 500 },
+    );
+  }
+
+  const url = `https://raw.githubusercontent.com/${repo}/${branch}/${path}`;
+  return NextResponse.json({ url });
 }

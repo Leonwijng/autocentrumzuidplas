@@ -52,7 +52,7 @@ export default async function HomePage() {
             Jouw volgende auto<br className="hidden sm:block" /> uit Nieuwerkerk aan den IJssel.
           </h1>
           <p className="animate-fade-up delay-3 mx-auto mt-6 max-w-[44ch] text-[15px] leading-7 text-white/55">
-            {business.name} biedt een zorgvuldig geselecteerd aanbod van tweedehands auto&apos;s.
+            Autocentrum Zuidplas biedt een zorgvuldig geselecteerd aanbod van tweedehands auto&apos;s.
             Transparant geprijsd, persoonlijk begeleid.
           </p>
           <div className="animate-fade-up delay-4 mt-9 flex flex-wrap items-center justify-center gap-3">

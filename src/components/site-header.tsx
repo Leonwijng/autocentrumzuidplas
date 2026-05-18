@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { business } from "@/content/site-content";
@@ -16,11 +17,15 @@ export function SiteHeader() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.06] bg-black/75 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
-        <Link
-          href="/"
-          className="text-[13px] font-semibold tracking-tight text-white hover:opacity-80 transition-opacity"
-        >
-          {business.name}
+        <Link href="/" className="hover:opacity-80 transition-opacity">
+          <Image
+            src="/logo.png"
+            alt={business.name}
+            width={120}
+            height={40}
+            className="h-8 w-auto object-contain brightness-0 invert"
+            priority
+          />
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">
